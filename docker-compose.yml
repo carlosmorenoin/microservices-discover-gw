@@ -1,0 +1,43 @@
+version: '3'
+services:
+  mongodb:
+    image: mongo
+
+  micro-eureka:
+    image: java:openjdk-8u91-jdk
+    working_dir: /app
+    volumes:
+      - ./micro-eureka/target:/app
+    command: java -Djava.security.egd=file:/dev/./urandom -jar /app/micro-eureka.jar --server.port=1111
+    ports:
+      - "1111:1111"
+
+  micro-users:
+    image: java:openjdk-8u91-jdk
+    working_dir: /app
+    volumes:
+      - ./micro-users/target:/app
+    command: java -Djava.security.egd=file:/dev/./urandom -jar /app/micro-users.jar --server.port=2222
+    ports:
+      - "8080"
+    links:
+      - micro-eureka
+      - mongodb
+    environment:
+          EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://micro-eureka:1111/eureka/
+          SPRING_DATA_MONGODB_URI: mongodb://mongodb/micro
+
+
+  micro-gateway:
+    image: java:openjdk-8u91-jdk
+    working_dir: /app
+    volumes:
+      - ./micro-gateway/target:/app
+    command: java -Djava.security.egd=file:/dev/./urandom -jar /app/micro-gateway.jar --server.port=8080
+    ports:
+      - "8080:8080"
+    links:
+      - micro-eureka
+      - micro-users
+    environment:
+        EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://micro-eureka:1111/eureka/
